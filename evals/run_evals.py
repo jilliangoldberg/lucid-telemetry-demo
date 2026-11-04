@@ -13,7 +13,6 @@ Usage: python3 evals/run_evals.py [--jobs a,b] [--base origin/main] [--report re
 Exits 1 if any gate fails.
 """
 import argparse
-import bisect
 import json
 import math
 import os
@@ -29,7 +28,6 @@ JOBS = ["ota_status", "battery_health", "charging_sessions"]
 # Paths a port PR must not touch: the evals and everything they compare against.
 PROTECTED = ("contracts/", "evals/", "fixtures/", "legacy/", "privacy/", ".github/")
 NOT_PORTED = 3  # run_job's exit code for a job without a Rust port
-LOCATION_CELL = re.compile(r"^-?\d{1,3}\.\d{2},-?\d{1,3}\.\d{2}$")
 RAW_LOCATION_FIELDS = {"lat", "lon", "latitude", "longitude", "gps"}
 
 
@@ -160,31 +158,21 @@ def check_faults(binary, job, events, clean_output, key):
 
 # ---------- G5: privacy ----------
 
-NUMBER = re.compile(r"-?\d+\.\d+")
-
-
-def check_privacy(output, events):
-    raw = sorted({e[k] for e in events for k in ("lat", "lon") if k in e})
-
-    def precise_coordinate(token):
-        """True if `token` has 3+ decimals (finer than a cell) and is within ~50 m of a real coordinate."""
-        if len(token.split(".")[1]) < 3:
-            return False
-        x = float(token)
-        i = bisect.bisect_left(raw, x)
-        return any(abs(x - raw[j]) < 0.0005 for j in (i - 1, i) if 0 <= j < len(raw))
-
+def check_privacy(binary, job, events, output, key):
+    """Output may depend on location only through its ~1 km cell. Test it directly: move every
+    coordinate a little (staying in the same cell) and rerun. Any change in output means finer
+    location leaked, whatever field or format it's in. Fixture coordinates stay >= 0.001 from
+    a cell edge (fixtures/generate.py), so a 0.0005 shift never changes the cell."""
     for record in output:
-        for field, value in record.items():
+        for field in record:
             if field.lower() in RAW_LOCATION_FIELDS:
                 return False, f"raw location field `{field}` in output"
-            # Check every decimal number, in float fields and inside strings, in any format.
-            text = repr(value) if isinstance(value, float) else value if isinstance(value, str) else ""
-            if any(precise_coordinate(t) for t in NUMBER.findall(text)):
-                return False, f"`{field}` contains a precise coordinate ({value})"
-            if field == "location_cell" and not LOCATION_CELL.match(value):
-                return False, f"location_cell `{value}` is not a 2-decimal cell"
-    return True, "no raw coordinates in output"
+    for shift in (0.0005, -0.0005):
+        moved = [{**e, **{k: e[k] + shift for k in ("lat", "lon") if k in e}} for e in events]
+        ok, detail = compare(run_job(binary, job, moved), output, key)
+        if not ok:
+            return False, f"output changes when locations move within their cell: {detail}"
+    return True, "output depends on location only through the cell"
 
 
 # ---------- G6: integrity ----------
@@ -223,7 +211,9 @@ def main():
     args = ap.parse_args()
 
     rust_dir = Path(args.rust_dir).resolve()
-    target = Path(os.environ.get("CARGO_TARGET_DIR", rust_dir / "target"))
+    # Absolute, so cargo (run inside rust_dir) and this script agree on where the binary is.
+    target = Path(os.environ.get("CARGO_TARGET_DIR", rust_dir / "target")).resolve()
+    os.environ["CARGO_TARGET_DIR"] = str(target)
     binary = target / "release" / "run_job"
     built, build_detail = build(rust_dir, args.skip_unit_tests)
     integrity = check_integrity(args.base)
@@ -244,7 +234,7 @@ def main():
             "G2": list(check_contract(output, contract)),
             "G3": list(parity),
             "G4": list(check_faults(binary, job, events, output, contract["key"])),
-            "G5": list(check_privacy(output, events)),
+            "G5": list(check_privacy(binary, job, events, output, contract["key"])),
         }
 
     gates = ["G2", "G3", "G4", "G5"]

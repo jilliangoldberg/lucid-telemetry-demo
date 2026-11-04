@@ -174,6 +174,8 @@ def check_privacy(output, events):
 def check_integrity(base):
     if not base:
         return None, "skipped (no --base; runs on pull requests)"
+    if run(["git", "cat-file", "-e", f"{base}:evals/run_evals.py"], cwd=ROOT).returncode != 0:
+        return None, f"skipped ({base} has no eval gates yet, so nothing is frozen)"
     result = run(["git", "diff", "--name-only", f"{base}...HEAD"], cwd=ROOT)
     if result.returncode != 0:
         return False, f"git diff failed: {result.stderr.strip()}"

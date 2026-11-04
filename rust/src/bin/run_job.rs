@@ -46,6 +46,7 @@ fn main() {
     // Register each ported job here.
     let output = match args[1].as_str() {
         "ota_status" => run::<jobs::ota_status::OtaStatus>(&events, restart),
+        "charging_sessions" => run::<jobs::charging_sessions::ChargingSessions>(&events, restart),
         other => {
             eprintln!("job not ported yet: {other}");
             process::exit(3);

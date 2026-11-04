@@ -1,0 +1,5 @@
+rust/target/
+legacy/.scala-build/
+.bsp/
+evals/out/
+__pycache__/

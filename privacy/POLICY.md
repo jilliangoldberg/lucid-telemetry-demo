@@ -10,4 +10,4 @@ Every telemetry event carries GPS `lat`/`lon` tied to a VIN, which makes it pers
 
 **How it's enforced:** eval gate G5 (evals/run_evals.py) fails any port whose output contains a raw input coordinate, a raw location field, or a malformed cell. The privacy team reviews this pattern once; ports that pass G5 follow it.
 
-*Synthetic demo policy, written to illustrate the approach; not Lucid's actual policy.*
+*Synthetic policy; not Lucid's actual policy.*

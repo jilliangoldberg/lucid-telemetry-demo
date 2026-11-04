@@ -1,0 +1,12 @@
+{
+  "job": "ota_status",
+  "key": ["vin", "ota_version"],
+  "fields": {
+    "vin": "string",
+    "ota_version": "string",
+    "status": "string",
+    "last_seq": "integer",
+    "updated_ts_ms": "integer",
+    "updates": "integer"
+  }
+}

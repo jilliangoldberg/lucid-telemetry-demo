@@ -14,7 +14,7 @@ Before Devin ports anything, freeze what "correct" means. Every port is graded b
 | G5 privacy | no raw lat/lon in output; location only as a ~1 km cell (`privacy/POLICY.md`) | one privacy review for the pattern, not per job |
 | G6 integrity | a port PR can't also change contracts, evals, fixtures, legacy code or CI | trust in the gates |
 
-**Evaluating the evals:** `evals/mutants/` holds 5 deliberately broken versions of the reference port (no dedup, dedup lost on restart, last-arrival-wins, renamed field, leaked coordinates). `run_mutants.py` checks each one is caught by its gate. A gate that misses its mutant has a hole.
+**Evaluating the evals:** `evals/mutants/` holds 6 deliberately broken versions of the reference port (no dedup, dedup lost on restart, last-arrival-wins, renamed field, leaked raw and rounded coordinates). `run_mutants.py` checks each one is caught by its gate. A gate that misses its mutant has a hole.
 
 ## Layout
 ```

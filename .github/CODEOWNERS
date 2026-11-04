@@ -1,0 +1,7 @@
+# Eval gates and everything ports are graded against need a human owner's approval.
+/contracts/  @jilliangoldberg
+/evals/      @jilliangoldberg
+/fixtures/   @jilliangoldberg
+/legacy/     @jilliangoldberg
+/privacy/    @jilliangoldberg
+/.github/    @jilliangoldberg

@@ -1,0 +1,41 @@
+name: evals
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+  pull-requests: write
+jobs:
+  evals:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+      - name: Run eval gates
+        run: |
+          base=""
+          if [ "${{ github.event_name }}" = "pull_request" ]; then base="--base origin/${{ github.base_ref }}"; fi
+          python3 evals/run_evals.py --report report.md $base
+      - name: Job summary
+        if: always()
+        run: cat report.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Comment eval report on the PR
+        if: always() && github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: evals
+          path: report.md
+  mutants:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+      - name: Check the evals catch known bugs
+        run: set -o pipefail; python3 evals/run_mutants.py | tee -a "$GITHUB_STEP_SUMMARY"

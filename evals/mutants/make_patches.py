@@ -29,6 +29,9 @@ MUTANTS = {
     "raw_location_leak": ("Adds raw lat/lon to an existing field", "G5", [
         (OTA, "latest.status = status.to_string();",
          'latest.status = format!("{status}@{},{}", e.f64("lat").unwrap_or(0.0), e.f64("lon").unwrap_or(0.0)); // MUTANT')]),
+    "precise_location_leak": ("Adds 4-decimal lat/lon (~10 m) to a field", "G5", [
+        (OTA, "latest.status = status.to_string();",
+         'latest.status = format!("{status}@{:.4},{:.4}", e.f64("lat").unwrap_or(0.0), e.f64("lon").unwrap_or(0.0)); // MUTANT')]),
 }
 
 

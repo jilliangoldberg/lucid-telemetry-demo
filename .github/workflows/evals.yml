@@ -38,4 +38,4 @@ jobs:
         with:
           workspaces: rust
       - name: Check the evals catch known bugs
-        run: python3 evals/run_mutants.py | tee -a "$GITHUB_STEP_SUMMARY"
+        run: set -o pipefail; python3 evals/run_mutants.py | tee -a "$GITHUB_STEP_SUMMARY"

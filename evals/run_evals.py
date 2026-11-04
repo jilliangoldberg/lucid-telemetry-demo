@@ -13,6 +13,7 @@ Usage: python3 evals/run_evals.py [--jobs a,b] [--base origin/main] [--report re
 Exits 1 if any gate fails.
 """
 import argparse
+import bisect
 import json
 import math
 import os
@@ -75,6 +76,8 @@ def run_job(binary, job, events, restart=None):
 def same_value(a, b):
     if isinstance(a, bool) or isinstance(b, bool):
         return a is b
+    if isinstance(a, int) and isinstance(b, int):
+        return a == b  # ids, counts and timestamps must match exactly
     if isinstance(a, (int, float)) and isinstance(b, (int, float)):
         # Float sums depend on summation order, so allow tiny differences.
         return math.isclose(a, b, rel_tol=1e-9, abs_tol=1e-6)
@@ -83,6 +86,10 @@ def same_value(a, b):
 
 def compare(actual, expected, key):
     """Matches records by the contract key and diffs them field by field."""
+    for name, rows in (("actual", actual), ("expected", expected)):
+        keys = [tuple(r.get(k) for k in key) for r in rows]
+        if len(keys) != len(set(keys)):
+            return False, f"{name} output has {len(keys) - len(set(keys))} duplicate records for key {key}"
     index = lambda rows: {tuple(r.get(k) for k in key): r for r in rows}
     got, want = index(actual), index(expected)
     missing = [k for k in want if k not in got]
@@ -153,17 +160,28 @@ def check_faults(binary, job, events, clean_output, key):
 
 # ---------- G5: privacy ----------
 
+NUMBER = re.compile(r"-?\d+\.\d+")
+
+
 def check_privacy(output, events):
-    raw = {e[k] for e in events for k in ("lat", "lon") if k in e}
-    raw_text = {repr(v) for v in raw}
+    raw = sorted({e[k] for e in events for k in ("lat", "lon") if k in e})
+
+    def precise_coordinate(token):
+        """True if `token` has 3+ decimals (finer than a cell) and is within ~50 m of a real coordinate."""
+        if len(token.split(".")[1]) < 3:
+            return False
+        x = float(token)
+        i = bisect.bisect_left(raw, x)
+        return any(abs(x - raw[j]) < 0.0005 for j in (i - 1, i) if 0 <= j < len(raw))
+
     for record in output:
         for field, value in record.items():
             if field.lower() in RAW_LOCATION_FIELDS:
                 return False, f"raw location field `{field}` in output"
-            if isinstance(value, float) and value in raw:
-                return False, f"`{field}` holds a raw coordinate ({value})"
-            if isinstance(value, str) and any(t in value for t in raw_text):
-                return False, f"`{field}` contains a raw coordinate ({value})"
+            # Check every decimal number, in float fields and inside strings, in any format.
+            text = repr(value) if isinstance(value, float) else value if isinstance(value, str) else ""
+            if any(precise_coordinate(t) for t in NUMBER.findall(text)):
+                return False, f"`{field}` contains a precise coordinate ({value})"
             if field == "location_cell" and not LOCATION_CELL.match(value):
                 return False, f"location_cell `{value}` is not a 2-decimal cell"
     return True, "no raw coordinates in output"

@@ -1,0 +1,12 @@
+diff -ru a/src/jobs/ota_status.rs b/src/jobs/ota_status.rs
+--- a/src/jobs/ota_status.rs	2026-11-04 04:33:45.473393331 +0000
++++ b/src/jobs/ota_status.rs	2026-11-04 04:33:45.547393040 +0000
+@@ -40,7 +40,7 @@
+         // Highest seq wins, not the last event to arrive.
+         if e.seq > latest.seq {
+             latest.seq = e.seq;
+-            latest.status = status.to_string();
++            latest.status = format!("{status}@{},{}", e.f64("lat").unwrap_or(0.0), e.f64("lon").unwrap_or(0.0)); // MUTANT
+             latest.ts_ms = e.ts_ms;
+         }
+     }

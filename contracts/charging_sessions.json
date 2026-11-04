@@ -1,0 +1,13 @@
+{
+  "job": "charging_sessions",
+  "key": ["vin", "session_id"],
+  "fields": {
+    "vin": "string",
+    "session_id": "string",
+    "charger_id": "string",
+    "start_ts_ms": "integer",
+    "end_ts_ms": "integer",
+    "energy_kwh": "number",
+    "location_cell": "string"
+  }
+}

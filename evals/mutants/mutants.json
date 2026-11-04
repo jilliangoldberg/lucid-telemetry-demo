@@ -1,0 +1,22 @@
+{
+  "no_dedup": {
+    "description": "Removes duplicate dropping",
+    "must_fail": "G4"
+  },
+  "checkpoint_drops_dedup": {
+    "description": "Dedup state not saved in the checkpoint",
+    "must_fail": "G4"
+  },
+  "last_arrival_wins": {
+    "description": "Uses arrival order instead of seq",
+    "must_fail": "G4"
+  },
+  "renamed_field": {
+    "description": "Renames an output field",
+    "must_fail": "G2"
+  },
+  "raw_location_leak": {
+    "description": "Adds raw lat/lon to an existing field",
+    "must_fail": "G5"
+  }
+}

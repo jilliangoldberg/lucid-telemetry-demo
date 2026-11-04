@@ -1,0 +1,13 @@
+{
+  "job": "battery_health",
+  "key": ["vin", "window_start_ms"],
+  "fields": {
+    "vin": "string",
+    "window_start_ms": "integer",
+    "events": "integer",
+    "avg_soc_pct": "number",
+    "max_temp_c": "number",
+    "max_cell_delta_mv": "integer",
+    "alert": "boolean"
+  }
+}

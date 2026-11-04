@@ -1,0 +1,12 @@
+diff -ru a/src/skeleton.rs b/src/skeleton.rs
+--- a/src/skeleton.rs	2026-11-04 04:29:56.502462920 +0000
++++ b/src/skeleton.rs	2026-11-04 04:33:45.536393084 +0000
+@@ -51,7 +51,7 @@
+ impl<J: Job> Runner<J> {
+     pub fn process(&mut self, event: &Event) {
+         self.offset += 1;
+-        let first_time = self.seen.insert(event.event_id.clone());
++        let first_time = true; // MUTANT: dedup removed
+         if first_time {
+             self.job.apply(event);
+         }

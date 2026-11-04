@@ -9,7 +9,7 @@ use std::collections::BTreeMap;
 
 #[derive(Default, Serialize, Deserialize)]
 pub struct ChargingSessions {
-    /// Keyed by "vin|session_id".
+    /// Keyed by `["vin","session_id"]` as JSON, so ids containing any character can't collide.
     sessions: BTreeMap<String, Session>,
 }
 
@@ -40,7 +40,7 @@ impl Job for ChargingSessions {
         let Some(session_id) = e.str("session_id") else {
             return;
         };
-        let key = format!("{}|{}", e.vin, session_id);
+        let key = json!([e.vin, session_id]).to_string();
         let s = self.sessions.entry(key).or_insert_with(|| Session {
             vin: e.vin.clone(),
             session_id: session_id.to_string(),
@@ -139,6 +139,20 @@ mod tests {
             run(&events)["energy_kwh"].as_f64().unwrap().to_bits(),
             expected.to_bits()
         );
+    }
+
+    #[test]
+    fn ids_containing_the_separator_stay_separate_sessions() {
+        let event = |id: &str, vin: &str, session_id: &str| -> Event {
+            serde_json::from_value(json!({
+                "event_id": id, "vin": vin, "seq": 1, "ts_ms": 1, "session_id": session_id,
+            }))
+            .unwrap()
+        };
+        let mut job = ChargingSessions::default();
+        job.apply(&event("a", "V", "A|B"));
+        job.apply(&event("b", "V|A", "B"));
+        assert_eq!(job.output().len(), 2);
     }
 
     #[test]
